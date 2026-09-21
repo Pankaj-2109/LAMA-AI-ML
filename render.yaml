@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: lama-ai-ml
+    runtime: python
+    buildCommand: pip install -r ml_engine/requirements.txt
+    startCommand: cd ml_engine && gunicorn service:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: PYTHON_VERSION
+        value: "3.11.11"
