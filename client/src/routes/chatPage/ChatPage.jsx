@@ -1,5 +1,7 @@
 import "./chatPage.css";
 import NewPrompt from "../../components/newPrompt/NewPrompt";
+import MLBadge from "../../components/mlBadge/MLBadge";
+import FeedbackWidget from "../../components/feedbackWidget/FeedbackWidget";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
 import Markdown from "react-markdown";
@@ -20,7 +22,7 @@ const ChatPage = () => {
     queryFn: async () => {
       const token = await getToken();
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL || "https://lama-ai-1bq2.onrender.com"}/api/chats/${chatId}`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/chats/${chatId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -84,6 +86,18 @@ const ChatPage = () => {
                   <Markdown>
                     {message?.parts?.[0]?.text || ""}
                   </Markdown>
+
+                  {message.role === "model" && (
+                    <>
+                      <MLBadge mlMeta={message.mlMeta} />
+                      <FeedbackWidget
+                        chatId={chatId}
+                        messageIndex={i}
+                        prompt={data?.history?.[i - 1]?.parts?.[0]?.text || ""}
+                        initialFeedback={message.feedback}
+                      />
+                    </>
+                  )}
                 </div>
               </div>
             ))}
@@ -115,7 +129,10 @@ const ChatPage = () => {
               >
                 {msg.role === "assistant" ? (
                   msg.content ? (
-                    <Markdown>{msg.content}</Markdown>
+                    <>
+                      <Markdown>{msg.content}</Markdown>
+                      {msg.mlMeta && <MLBadge mlMeta={msg.mlMeta} />}
+                    </>
                   ) : (
                     <span className="thinkingText">Thinking...</span>
                   )

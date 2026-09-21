@@ -51,7 +51,7 @@ async function retryWithBackoff(fn, retries = 2, delay = 1000) {
   }
 }
 
-export const generateGeminiStream = async (chatHistory, messageParts) => {
+export const generateGeminiStream = async (chatHistory, messageParts, systemInstruction = null) => {
   const primaryModelName = "gemini-2.5-flash";
   const fallbackModelName = "gemini-1.5-flash";
 
@@ -59,6 +59,7 @@ export const generateGeminiStream = async (chatHistory, messageParts) => {
     const modelInstance = genAI.getGenerativeModel({
       model: modelName,
       safetySettings,
+      ...(systemInstruction ? { systemInstruction } : {}),
     });
     const chat = modelInstance.startChat({ history: chatHistory });
     return await chat.sendMessageStream(messageParts);

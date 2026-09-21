@@ -20,12 +20,12 @@ const NewPrompt = ({ data, setMessages }) => {
   const formRef = useRef(null);
   const queryClient = useQueryClient();
 
-  // Save chat
+  // Save chat with ML metadata
   const mutation = useMutation({
-    mutationFn: async ({ question, answer }) => {
+    mutationFn: async ({ question, answer, mlMeta }) => {
       const token = await getToken();
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/chats/${data._id}`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/chats/${data._id}`,
         {
           method: "PUT",
           headers: {
@@ -36,6 +36,7 @@ const NewPrompt = ({ data, setMessages }) => {
             question,
             answer,
             img: img.dbData?.filePath || null,
+            mlMeta,
           }),
         }
       );
@@ -53,27 +54,55 @@ const NewPrompt = ({ data, setMessages }) => {
 
   const hasTriggeredRef = useRef(null);
 
-  // Consolidated response generator
+  // Consolidated response generator incorporating LAMA AI ML Pipeline
   const generateResponse = async (text, isAuto = false) => {
     if ((!text?.trim() && !img.dbData?.filePath) || isThinking) return;
 
     setIsThinking(true);
 
     if (isAuto) {
-      setMessages([{ role: "assistant", content: "" }]);
+      setMessages([{ role: "assistant", content: "", mlMeta: null }]);
     } else {
       setMessages((prev) => [
         ...prev,
         {
           role: "user",
           content: text,
-          img: img.dbData?.filePath || null
+          img: img.dbData?.filePath || null,
         },
-        { role: "assistant", content: "" },
+        { role: "assistant", content: "", mlMeta: null },
       ]);
     }
 
     try {
+      const token = await getToken();
+
+      // Step 1 - 8: Invoke ML Pipeline (Preprocessing, TF-IDF, Intent Classification, Profiling, K-Means, Strategy Selection)
+      let pipelineData = null;
+      try {
+        const mlRes = await fetch(
+          `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/ml/pipeline`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              prompt: text || "Analyze image",
+              chatId: data?._id,
+            }),
+          }
+        );
+        if (mlRes.ok) {
+          pipelineData = await mlRes.json();
+        }
+      } catch (mlErr) {
+        console.warn("Could not retrieve ML strategy:", mlErr);
+      }
+
+      const systemInstruction = pipelineData?.strategy?.system_instruction || null;
+
       const history = data?.history || [];
       const baseHistory = isAuto ? history.slice(0, -1) : history;
 
@@ -86,7 +115,8 @@ const NewPrompt = ({ data, setMessages }) => {
         ? (text?.trim() ? [img.aiData, text] : [img.aiData])
         : [text];
 
-      const result = await generateGeminiStream(chatHistory, messageParts);
+      // Step 9: Generate response using Gemini conditioned on the personalized systemInstruction
+      const result = await generateGeminiStream(chatHistory, messageParts, systemInstruction);
 
       let fullText = "";
 
@@ -95,19 +125,85 @@ const NewPrompt = ({ data, setMessages }) => {
 
         setMessages((prev) => [
           ...prev.slice(0, -1),
-          { role: "assistant", content: fullText },
+          {
+            role: "assistant",
+            content: fullText,
+            mlMeta: pipelineData
+              ? {
+                  intent: pipelineData.intent?.intent,
+                  intentFriendly: pipelineData.intent?.friendly_name,
+                  intentConfidence: pipelineData.intent?.confidence,
+                  clusterId: pipelineData.cluster?.cluster_id,
+                  clusterName: pipelineData.cluster?.name,
+                  clusterEmoji: pipelineData.cluster?.badge_emoji,
+                }
+              : null,
+          },
         ]);
       }
 
+      // Step 10: Predict Response Quality via ML cross-feature model
+      let qualityData = null;
+      try {
+        const qualRes = await fetch(
+          `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/ml/quality`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              prompt: text || "Image query",
+              response: fullText,
+              clusterId: pipelineData?.cluster?.cluster_id || 0,
+              chatId: data?._id,
+              mlMeta: {
+                intent: pipelineData?.intent?.intent,
+                intentFriendly: pipelineData?.intent?.friendly_name,
+                intentConfidence: pipelineData?.intent?.confidence,
+                clusterId: pipelineData?.cluster?.cluster_id,
+                clusterName: pipelineData?.cluster?.name,
+                clusterEmoji: pipelineData?.cluster?.badge_emoji,
+              },
+            }),
+          }
+        );
+        if (qualRes.ok) {
+          qualityData = await qualRes.json();
+        }
+      } catch (qualErr) {
+        console.warn("Could not predict quality:", qualErr);
+      }
+
+      const finalMlMeta = {
+        intent: pipelineData?.intent?.intent || "conversational_casual",
+        intentFriendly: pipelineData?.intent?.friendly_name || "Conversational & Casual",
+        intentConfidence: pipelineData?.intent?.confidence || 0.85,
+        clusterId: pipelineData?.cluster?.cluster_id || 0,
+        clusterName: pipelineData?.cluster?.name || "The Pragmatist",
+        clusterEmoji: pipelineData?.cluster?.badge_emoji || "🎯",
+        predictedQuality: qualityData?.prediction?.percentage || 92,
+        qualityGrade: qualityData?.prediction?.grade || "Good",
+      };
+
+      // Step 11: Display with updated ML telemetry
+      setMessages((prev) => [
+        ...prev.slice(0, -1),
+        { role: "assistant", content: fullText, mlMeta: finalMlMeta },
+      ]);
+
+      // Step 13: Store the Turn & ML Metadata in MongoDB
       mutation.mutate({
         question: isAuto ? null : text,
         answer: fullText,
+        mlMeta: finalMlMeta,
       });
 
     } catch (err) {
       setMessages((prev) => [
         ...prev.slice(0, -1),
-        { role: "assistant", content: "❌ " + (err.message || "Error") },
+        { role: "assistant", content: "❌ " + (err.message || "Error"), mlMeta: null },
       ]);
     } finally {
       setIsThinking(false);

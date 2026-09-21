@@ -1,0 +1,129 @@
+.feedbackWidget {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  max-width: 480px;
+  transition: all 0.2s ease;
+}
+
+.feedbackWidget:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.feedbackHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.feedbackPrompt {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.thumbsGroup {
+  display: flex;
+  gap: 4px;
+}
+
+.thumbBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 12px;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.thumbBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.thumbBtn.active {
+  background: rgba(96, 165, 250, 0.25);
+  border-color: #60a5fa;
+}
+
+.starsGroup {
+  display: flex;
+  gap: 2px;
+}
+
+.starBtn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 1px;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.starBtn:hover {
+  transform: scale(1.2);
+}
+
+.starBtn.filled {
+  color: #facc15;
+}
+
+.feedbackSuccess {
+  color: #4ade80;
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: auto;
+  animation: fadeIn 0.3s ease;
+}
+
+.tagsGroup {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tagPill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tagPill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.tagPill.selected {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

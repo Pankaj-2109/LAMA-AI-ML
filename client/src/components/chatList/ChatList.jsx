@@ -35,6 +35,9 @@ const ChatList = () => {
       <span className="title">DASHBOARD</span>
 
       <Link to="/dashboard">Create a New Chat</Link>
+      <Link to="/dashboard/ml-analytics" style={{ color: "#a78bfa", fontWeight: 600 }}>
+        🔬 ML Engine & Analytics
+      </Link>
       <Link to="/">Explore Lama AI</Link>
       <Link to="/">Contact</Link>
 

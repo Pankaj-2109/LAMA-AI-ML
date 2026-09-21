@@ -10,6 +10,8 @@ import DashboardLayout from "./layouts/dashboardLayout/DashboardLayout";
 import SignInPage from "./routes/signInPage/signInPage";
 import SignUpPage from "./routes/signUpPage/signUpPage";
 
+import MLAnalyticsPage from "./routes/mlAnalyticsPage/MLAnalyticsPage";
+
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 if (!PUBLISHABLE_KEY) {
@@ -42,6 +44,10 @@ const router = createBrowserRouter([
           {
             path: "/dashboard/chats/:id",
             element: <ChatPage />,
+          },
+          {
+            path: "/dashboard/ml-analytics",
+            element: <MLAnalyticsPage />,
           },
         ],
       },
